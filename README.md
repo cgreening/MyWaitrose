@@ -66,12 +66,12 @@ npm start USERNAME PASSWORD "POSTCODE" "PRODUCT SEARCH TERM"
 
 This will run the code once - pass the same arguments as above.
 
-## Building
+### Building
 
 Build the javascript with:
 
 ```
 npm run lint
 npm test
-npm run build
+npm run compile
 ```
