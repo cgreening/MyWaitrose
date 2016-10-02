@@ -7,6 +7,49 @@ Hacking around with watirose
 npm install mywaitrose
 ```
 
+Typical use case would be to login:
+
+```js
+await waitroseAPI.login(<USERNAME>, <PASSWORD>);
+```
+
+Then set the delivery postcode (this is required before you try and add anything to your basket)
+
+```js
+await waitroseAPI.setPostcode(postcode);
+```
+
+You can now search for products:
+
+```js
+const products = waitroseAPI.searchForProduct('Bananas');
+```
+
+Add products to your basket:
+
+```js
+const newBasket = await waitroseAPI.addToBasket(products[0].id);
+console.log(`You now have ${newBasket.numberOfItems} items in your basket`);
+newBasket.products.forEach(product => console.log(product.id, product.name, product.quantity));
+```
+
+Get the estimated cost of your basket
+
+```js
+const newTolleySummary = await waitroseAPI.getTrolleySummary();
+console.log(`Estimated cost of trolley ${newTolleySummary.estimatedCost}`);
+```
+
+And list the contents of your basket
+
+```js
+const itemsInBasket = await waitroseAPI.getItemsInBasket();
+console.log(`You have ${itemsInBasket.numberOfItems} items in your basket`);
+itemsInBasket.products.forEach(product => console.log(product.name));
+```
+
+### Complete example:
+
 ```js
 import WaitroseAPI from 'mywaitrose';
 
