@@ -1,6 +1,4 @@
 /* eslint class-methods-use-this: 0 */
-import { select } from 'soupselect';
-import htmlparser from './htmlparser';
 import request, { jar } from './request';
 
 export default class WaitroseAPI {
@@ -60,45 +58,33 @@ export default class WaitroseAPI {
     };
   }
 
-  // TODO - this is horrible...
   async getItemsInBasket() {
-    const itemsInBasketHtml = await request({
+    const miniTrolleyResponse = await request({
       method: 'GET',
-      url: 'http://www.waitrose.com/shop/TrolleyDisplay',
+      url: 'http://www.waitrose.com/shop/MiniTrolley?_method=GET',
       jar: this.cookieJar
     });
-    // extract the embedded json on the page that has the basket contents - might not be all the items? Is it just the items on this page?
-    let jsonString = itemsInBasketHtml.split('\n').find(line => line.indexOf('\tproductsOnPage  = \'{') !== -1);
-    const regex = /\tproductsOnPage {2}= '(.*)'/g;
-    jsonString = regex.exec(jsonString)[1];
-    const escapeRegExpProducts = /[\-{}\[\]+?.,\\\^$|#\s]/g;
-    jsonString = jsonString.replace(escapeRegExpProducts, '$&');
-    const productsOnPage = JSON.parse(jsonString);
+    if(miniTrolleyResponse.result != 'success') {
+      throw new Error('Could not get items');
+    }
     return {
-      numberOfItems: productsOnPage.totalOrderItemsCount,
-      products: productsOnPage.products,
-      jar: this.cookieJar
+      numberOfItems: miniTrolleyResponse.size,
+      products: miniTrolleyResponse.items
     };
-    /* This is what it looks like in the page
-    <script>
-      var productsOnPage = new Array();
-      var escapeRegExpProducts = /[\-{}\[\]+?.,\\\^$|#\s]/g;
-      productsOnPage  = '{"found":true,"itemsPerPage":48,"isEditOrder":false,"continueShopping":"/shop/Browse/Groceries","totalOrderItemsCount":3,"products":[{"name":"Waitrose Fairtrade Organic 6 Bananas in a bag","id":862592014,"productid":"45727","linenumber":"088937","image":"//d25hqtnqp5nl24.cloudfront.net/images/products/9/LN_088937_BP_9.jpg","thumb":"//d25hqtnqp5nl24.cloudfront.net/images/products/9/LN_088937_BP_9.jpg","url":"/shop/DisplayProductFlyout?productId=45727","productType":"G","canSubstitute":true,"price_individual":"&pound;1.92","price":"&pound;1.92","price_annotation":"","price_per_unit":"(32p each)","price_per_serving":"","serving_per_unit":"","weight":"6s","main_category":"Fresh &amp; Chilled","category":"Fresh_Fruit","sub_category":"Bananas","level1_category":"Fresh_and_Chilled","summary":"Organic bananas, grown under the Fairtrade scheme, which provides a better deal for producers in developing countries, creating opportunities for farmers and workers to improve their lives and communities and protect their environment.","offer":"","weight_type":"single","notice_required":0,"favourite":"","offer_tooltip":"","default_units":"C62","analgesic":0,"types":[],"maxPersonalMessageLength":0,"isPersonalised":"false","defaultQuantity":"1","persistDefault":0,"uom":"C62","quantity":1,"subPref":1,"parentCatentryId":45726},{"name":"Waitrose Fairtrade Organic 6 Bananas in a bag","id":862484514,"productid":"45727","linenumber":"088937","image":"//d25hqtnqp5nl24.cloudfront.net/images/products/9/LN_088937_BP_9.jpg","thumb":"//d25hqtnqp5nl24.cloudfront.net/images/products/9/LN_088937_BP_9.jpg","url":"/shop/DisplayProductFlyout?productId=45727","productType":"G","canSubstitute":true,"price_individual":"&pound;1.92","price":"&pound;1.92","price_annotation":"","price_per_unit":"(32p each)","price_per_serving":"","serving_per_unit":"","weight":"6s","main_category":"Fresh &amp; Chilled","category":"Fresh_Fruit","sub_category":"Bananas","level1_category":"Fresh_and_Chilled","summary":"Organic bananas, grown under the Fairtrade scheme, which provides a better deal for producers in developing countries, creating opportunities for farmers and workers to improve their lives and communities and protect their environment.","offer":"","weight_type":"single","notice_required":0,"favourite":"","offer_tooltip":"","default_units":"C62","analgesic":0,"types":[],"maxPersonalMessageLength":0,"isPersonalised":"false","defaultQuantity":"1","persistDefault":0,"uom":"C62","quantity":1,"subPref":1,"parentCatentryId":45726},{"name":"Waitrose Fairtrade Organic 6 Bananas in a bag","id":862597294,"productid":"45727","linenumber":"088937","image":"//d25hqtnqp5nl24.cloudfront.net/images/products/9/LN_088937_BP_9.jpg","thumb":"//d25hqtnqp5nl24.cloudfront.net/images/products/9/LN_088937_BP_9.jpg","url":"/shop/DisplayProductFlyout?productId=45727","productType":"G","canSubstitute":true,"price_individual":"&pound;1.92","price":"&pound;1.92","price_annotation":"","price_per_unit":"(32p each)","price_per_serving":"","serving_per_unit":"","weight":"6s","main_category":"Fresh &amp; Chilled","category":"Fresh_Fruit","sub_category":"Bananas","level1_category":"Fresh_and_Chilled","summary":"Organic bananas, grown under the Fairtrade scheme, which provides a better deal for producers in developing countries, creating opportunities for farmers and workers to improve their lives and communities and protect their environment.","offer":"","weight_type":"single","notice_required":0,"favourite":"","offer_tooltip":"","default_units":"C62","analgesic":0,"types":[],"maxPersonalMessageLength":0,"isPersonalised":"false","defaultQuantity":"1","persistDefault":0,"uom":"C62","quantity":1,"subPref":1,"parentCatentryId":45726}]}';
-      productsOnPage  = productsOnPage.replace(escapeRegExpProducts, '\$&');
-      var orderAttributes =  '{"groceryCount":3,"weCount":0,"totalCount":3,"isSeasonalItemPresent":false,"isSeasonalOrder":false}';
-    </script>
-    */
   }
 
   async searchForProduct(searchTerm) {
     const searchResponse = await request({
       method: 'GET',
-      url: `http://www.waitrose.com/shop/HeaderSearchCmd?searchTerm=${encodeURIComponent(searchTerm)}&defaultSearch=GR`,
+      // url: `http://www.waitrose.com/shop/HeaderSearchCmd?searchTerm=${encodeURIComponent(searchTerm)}&defaultSearch=GR`,
+      url: `http://query.published.live1.suggest.eu1.fredhopperservices.com/waitrose/jscript?search=${encodeURIComponent(searchTerm)}&scope=%2F%2Fwaitroseproduct%2Fen_GB&callback=mywaitrose&_method=GET&_=1475746938540`
     });
-    // looks like there is some embedded json for every search result on the page
-    const parsedHtml = await htmlparser(searchResponse);
-    const products = select(parsedHtml, 'div.productjson').map(element => JSON.parse(element.attribs['data-json']));
-    return products;
+    const regex = /mywaitrose\((.*)\)/g;
+    const jsonString = regex.exec(searchResponse)[1];
+    const json = JSON.parse(jsonString);
+    return json.suggestionGroups[2].suggestions.map((product) => {
+      return { ...product, id: product.secondId };
+    });
   }
 
   async addToBasket(productId) {
