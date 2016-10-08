@@ -101,4 +101,34 @@ export default class WaitroseAPI {
       products: addToBasketResponse.items
     };
   }
+
+  async getFavourites() {
+    const favouritesResponse = await request({
+      method: 'GET',
+      url: 'http://www.waitrose.com/shop/FavouritesDetails?_method=GET',
+      jar: this.cookieJar
+    });
+    if(favouritesResponse.status != 'success') {
+      throw new Error('Could not get favourites');
+    }
+    // we dont' get any product details, just the ids and some info on how often added to basket
+    const favourites = favouritesResponse.products;
+    const favouriteIds = favourites.map(product => product.id);
+    const chunkedIds = [];
+    for(let i = 0; i< favouriteIds.length; i+=20) {
+      chunkedIds.push(favouriteIds.slice(i, i+20));
+    }
+    // get the product details
+    const productDetailChunks = await Promise.all(chunkedIds.map(chunk =>
+      request({
+        method: 'GET',
+        url: 'http://www.waitrose.com/shop/LineLookUp?' + chunk.map((id, index) => `catentryId_${index}=${id}`).join('&') + '&_method=GET',
+        jar: this.cookieJar
+      })
+    ));
+    const products = [].concat.apply([], productDetailChunks.map(productDetailChunk => productDetailChunk.products));
+    const productLookup = products.reduce((map, product) => { map[product.productid] = product; return map; }, {});
+    const augmentedFavourites = favourites.map(favourite => ({ ...favourite, details: productLookup[favourite.id+''] }));
+    return augmentedFavourites;
+  }
 }
