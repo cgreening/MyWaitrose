@@ -40,12 +40,20 @@ const newTolleySummary = await waitroseAPI.getTrolleySummary();
 console.log(`Estimated cost of trolley ${newTolleySummary.estimatedCost}`);
 ```
 
-And list the contents of your basket
+List the contents of your basket
 
 ```js
 const itemsInBasket = await waitroseAPI.getItemsInBasket();
 console.log(`You have ${itemsInBasket.numberOfItems} items in your basket`);
 itemsInBasket.products.forEach(product => console.log(product.name));
+```
+
+Get your favourite products
+
+```js
+const favourites = await waitroseAPI.getFavourites();
+console.log(`You have ${favourites.length} favourite products`);
+favourites.forEach(favourite => console.log(favourite.details.name));
 ```
 
 ### Complete example:
